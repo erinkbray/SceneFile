@@ -11,7 +11,7 @@ class SceneFile(object):
 
     @property
     def filename(self):
-        pattern = "{descriptor}_{task}_{ver}{ext}"
+        pattern = "{descriptor}_{task}_v{ver:03d}{ext}"
         return pattern.format(descriptor=self.descriptor,
                               task=self.task,
                               ver=self.version,
@@ -20,3 +20,4 @@ class SceneFile(object):
 
 scene_file = SceneFile("D:\\", "tank", "model", 1, ".ma")
 print(scene_file.filename)
+

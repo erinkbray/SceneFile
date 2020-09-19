@@ -9,6 +9,14 @@ class SceneFile(object):
         self.version = ver
         self.extension = ext
 
-scene_file = SceneFile("D:\\", "tank", "model", "v001", ".ma")
-print(scene_file.descriptor)
+    @property
+    def filename(self):
+        pattern = "{descriptor}_{task}_{ver}{ext}"
+        return pattern.format(descriptor=self.descriptor,
+                              task=self.task,
+                              ver=self.version,
+                              ext=self.extension)
 
+
+scene_file = SceneFile("D:\\", "tank", "model", 1, ".ma")
+print(scene_file.filename)

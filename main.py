@@ -31,7 +31,7 @@ class SceneFile(object):
         path = Path(path)
         self.folder_path = path.parent
 
-
+#test case
 scene_file = SceneFile("D:\\tank_model_001.ma")
 print(scene_file.folder_path)
 print(scene_file.descriptor)

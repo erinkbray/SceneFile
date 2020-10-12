@@ -24,7 +24,7 @@ class SmartSaveUI(QtWidgets.QDialog):
         super(SmartSaveUI, self).__init__(parent=maya_main_window())
         self.setWindowTitle("Smart Save")
         self.setMinimumWidth(500)
-        self.setMaximumHeight(200)
+        self.setMaximumHeight(300)
         self.setWindowFlags(self.windowFlags() ^QtCore.Qt.WindowContextHelpButtonHint)
 
         self.create_ui()
@@ -34,10 +34,55 @@ class SmartSaveUI(QtWidgets.QDialog):
         self.title_lbl = QtWidgets.QLabel("Smart Save")
         self.title_lbl.setStyleSheet("font: bold 30px")
         self.folder_lay = self._create_folder_ui()
+        self.filename_lay = self._create_file_name_ui()
+        self.button_lay = self._create_save_button_ui()
         self.main_lay = QtWidgets.QVBoxLayout()
         self.main_lay.addWidget(self.title_lbl)
         self.main_lay.addLayout(self.folder_lay)
+        self.main_lay.addLayout(self.filename_lay)
+        self.main_lay.addStretch()
+        self.main_lay.addLayout(self.button_lay)
         self.setLayout(self.main_lay)
+
+    def _create_save_button_ui(self):
+        self.save_btn = QtWidgets.QPushButton("Save")
+        self.save_increment_btn = QtWidgets.QPushButton("Save Increment")
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(self.save_btn)
+        layout.addWidget(self.save_increment_btn)
+        return layout
+
+    def _create_file_name_ui(self):
+        layout = self._create_filename_headers()
+        self.descriptor_le = QtWidgets.QLineEdit("main")
+        self.descriptor_le.setMinimumWidth(100)
+        self.task_le = QtWidgets.QLineEdit("model")
+        self.task_le.setFixedWidth(100)
+        self.ver_sbx = QtWidgets.QSpinBox()
+        self.ver_sbx.setValue(1)
+        self.ver_sbx.setFixedWidth(80)
+        self.ver_sbx.setButtonSymbols(QtWidgets.QAbstractSpinBox.PlusMinus)
+        self.ext_lbl = QtWidgets.QLabel(".ma")
+        layout.addWidget(self.descriptor_le, 1, 0)
+        layout.addWidget(QtWidgets.QLabel("_"), 1, 1 )
+        layout.addWidget(self.task_le, 1, 2)
+        layout.addWidget(QtWidgets.QLabel("_v"), 1, 3)
+        layout.addWidget(self.ver_sbx, 1, 4)
+        layout.addWidget(self.ext_lbl, 1, 5)
+        return layout
+
+    def _create_filename_headers(self):
+        self.descriptor_header_lbl = QtWidgets.QLabel("Descriptor")
+        self.descriptor_header_lbl.setStyleSheet("font: bold")
+        self.task_header_lbl = QtWidgets.QLabel("Task")
+        self.task_header_lbl.setStyleSheet("font: bold")
+        self.ver_header_lbl = QtWidgets.QLabel("Version")
+        self.ver_header_lbl.setStyleSheet("font: bold")
+        layout = QtWidgets.QGridLayout()
+        layout.addWidget(self.descriptor_header_lbl, 0, 0)
+        layout.addWidget(self.task_header_lbl, 0, 2)
+        layout.addWidget(self.ver_header_lbl, 0, 4)
+        return layout
 
     def _create_folder_ui(self):
         default_folder = Path(cmds.workspace(rootDirectory=True, query=True))

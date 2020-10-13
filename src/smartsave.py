@@ -26,8 +26,8 @@ class SmartSaveUI(QtWidgets.QDialog):
         self.setMinimumWidth(500)
         self.setMaximumHeight(300)
         self.setWindowFlags(self.windowFlags() ^QtCore.Qt.WindowContextHelpButtonHint)
-
         self.create_ui()
+        self.create_connections()
 
 
     def create_ui(self):
@@ -45,6 +45,7 @@ class SmartSaveUI(QtWidgets.QDialog):
         self.setLayout(self.main_lay)
 
     def _create_save_button_ui(self):
+        """Creates Save & Save Increment Buttons"""
         self.save_btn = QtWidgets.QPushButton("Save")
         self.save_increment_btn = QtWidgets.QPushButton("Save Increment")
         layout = QtWidgets.QHBoxLayout()
@@ -53,6 +54,7 @@ class SmartSaveUI(QtWidgets.QDialog):
         return layout
 
     def _create_file_name_ui(self):
+        """Creates UI to select filename"""
         layout = self._create_filename_headers()
         self.descriptor_le = QtWidgets.QLineEdit("main")
         self.descriptor_le.setMinimumWidth(100)
@@ -72,6 +74,7 @@ class SmartSaveUI(QtWidgets.QDialog):
         return layout
 
     def _create_filename_headers(self):
+        """Creates and adds to layout descriptive headers for filename line entries"""
         self.descriptor_header_lbl = QtWidgets.QLabel("Descriptor")
         self.descriptor_header_lbl.setStyleSheet("font: bold")
         self.task_header_lbl = QtWidgets.QLabel("Task")
@@ -85,6 +88,7 @@ class SmartSaveUI(QtWidgets.QDialog):
         return layout
 
     def _create_folder_ui(self):
+        """Creates folder selector UI"""
         default_folder = Path(cmds.workspace(rootDirectory=True, query=True))
         self.folder_le = QtWidgets.QLineEdit(default_folder)
         self.folder_browse_btn = QtWidgets.QPushButton("...")
@@ -92,6 +96,46 @@ class SmartSaveUI(QtWidgets.QDialog):
         layout.addWidget(self.folder_le)
         layout.addWidget(self.folder_browse_btn)
         return layout
+
+    def create_connections(self):
+        """Connect widget signals to slots"""
+        self.folder_browse_btn.clicked.connect(self.browse_dir)
+        self.save_btn.clicked.connect(self.save)
+        self.save_increment_btn.clicked.connect(self.save)
+
+    @QtCore.Slot()
+    def browse_dir(self):
+        """Browse the directory"""
+        print("uwu")
+        dir = QtWidgets.QFileDialog.getExistingDirectory(
+            self, caption="Select Directory",
+            dir=self.folder_le.text(),
+            options=QtWidgets.QFileDialog.ShowDirsOnly |
+                    QtWidgets.QFileDialog.DontResolveSymlinks)
+        self.folder_le.setText(dir)
+
+    @QtCore.Slot()
+    def save(self):
+        """Saves the scene file"""
+        self._populate_scenefile_properties()
+        self.scene.save()
+
+    @QtCore.Slot()
+    def increment_save(self):
+        """Saves the scene file using increment_save"""
+        self._populate_scenefile_properties()
+        self.scene.increment_save()
+
+    def _populate_scenefile_properties(self):
+        self.scene = SceneFile()
+        self.scene.folder_path = self.folder_le.text()
+        self.scene.folder_path= Path(self.scene.folder_path.encode('ascii', 'ignore'))
+        self.scene.descriptor = self.descriptor_le.text()
+        self.scene.descriptor = self.scene.descriptor.encode('ascii', 'ignore')
+        self.scene.task = self.task_le.text()
+        self.scene.task = self.scene.task.encode('ascii', 'ignore')
+
+        self.scene.ver = int(self.ver_sbx.value())
 
 
 class SceneFile(object):
@@ -169,4 +213,5 @@ class SceneFile(object):
             Path: The path to the scene if successful.
         """
         self.ver = self.next_avail_ver()
+        print(self.ver)
         self.save()

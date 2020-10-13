@@ -101,12 +101,11 @@ class SmartSaveUI(QtWidgets.QDialog):
         """Connect widget signals to slots"""
         self.folder_browse_btn.clicked.connect(self.browse_dir)
         self.save_btn.clicked.connect(self.save)
-        self.save_increment_btn.clicked.connect(self.save)
+        self.save_increment_btn.clicked.connect(self.increment_save)
 
     @QtCore.Slot()
     def browse_dir(self):
         """Browse the directory"""
-        print("uwu")
         dir = QtWidgets.QFileDialog.getExistingDirectory(
             self, caption="Select Directory",
             dir=self.folder_le.text(),
@@ -124,10 +123,12 @@ class SmartSaveUI(QtWidgets.QDialog):
     def increment_save(self):
         """Saves the scene file using increment_save"""
         self._populate_scenefile_properties()
+        print("owo")
         self.scene.increment_save()
 
     def _populate_scenefile_properties(self):
         self.scene = SceneFile()
+        print("X")
         self.scene.folder_path = self.folder_le.text()
         self.scene.folder_path= Path(self.scene.folder_path.encode('ascii', 'ignore'))
         self.scene.descriptor = self.descriptor_le.text()
@@ -199,6 +200,7 @@ class SceneFile(object):
             return 1
         matching_scenefiles.sort(reverse=True)
         latest_scenefile = matching_scenefiles[0]
+        print("uwu")
         latest_scenefile = latest_scenefile.name.stripext()
         latest_ver_num = int(latest_scenefile.split("_v")[-1])
         return latest_ver_num + 1
@@ -214,4 +216,5 @@ class SceneFile(object):
         """
         self.ver = self.next_avail_ver()
         print(self.ver)
+        print("henlo")
         self.save()

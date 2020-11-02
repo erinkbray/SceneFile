@@ -5,8 +5,6 @@ import maya.OpenMayaUI as omui
 from PySide2 import QtWidgets, QtCore
 from shiboken2 import wrapInstance
 
-log = logging.getLogger(__name__)
-
 
 def maya_main_window():
     """returns the maya main window widget"""
@@ -86,8 +84,10 @@ class ScatterUI(QtWidgets.QDialog):
     def _create_z_rotation_ui(self, grid_lay):
         """creates Z axis rotation spinboxes"""
         self.min_z_sbx = QtWidgets.QSpinBox()
+        self.min_z_sbx.setSingleStep(5)
         self.min_z_sbx.setValue(0)
         self.max_z_sbx = QtWidgets.QSpinBox()
+        self.max_z_sbx.setSingleStep(5)
         self.max_z_sbx.setValue(0)
         self.min_z_sbx.setRange(0, 359)
         self.max_z_sbx.setRange(0, 359)
@@ -99,8 +99,10 @@ class ScatterUI(QtWidgets.QDialog):
         """creates Y axis rotation spinboxes"""
         self.min_y_sbx = QtWidgets.QSpinBox()
         self.min_y_sbx.setValue(0)
+        self.min_y_sbx.setSingleStep(5)
         self.max_y_sbx = QtWidgets.QSpinBox()
         self.max_y_sbx.setValue(0)
+        self.max_y_sbx.setSingleStep(5)
         self.min_y_sbx.setRange(0, 359)
         self.max_y_sbx.setRange(0, 359)
         grid_lay.addWidget(self.min_y_sbx, 2, 2)
@@ -111,8 +113,10 @@ class ScatterUI(QtWidgets.QDialog):
         """creates X axis rotation spinboxes"""
         self.min_x_sbx = QtWidgets.QSpinBox()
         self.min_x_sbx.setValue(0)
+        self.min_x_sbx.setSingleStep(5)
         self.max_x_sbx = QtWidgets.QSpinBox()
         self.max_x_sbx.setValue(0)
+        self.max_x_sbx.setSingleStep(5)
         self.min_x_sbx.setRange(0, 359)
         self.max_x_sbx.setRange(0, 359)
         grid_lay.addWidget(self.min_x_sbx, 2, 0)
@@ -180,17 +184,10 @@ class Scatter:
         self.scale_max = scale_max
 
     def scatter(self):
-        # string $selection[] = `ls - sl - fl`;
         selection = cmds.ls(sl=True, fl=True)
-
-        # string $vertexNames[] = `filterExpand - selectionMask 31 - expand true $selection`;
         pattern = "{obj}.vtx[*]".format(obj=selection[1])
         vertex_names = cmds.ls(pattern, flatten=True)
-        print(vertex_names)
-        # string $objectToInstance = $selection[0];
         object_to_instance = selection[0]
-
-        # if (`objectType $objectToInstance` == "transform"){
 
         if cmds.objectType(object_to_instance) == "transform":
             self.instance_objects(object_to_instance, vertex_names)

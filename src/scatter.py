@@ -4,7 +4,7 @@ import random
 import maya.OpenMayaUI as omui
 from PySide2 import QtWidgets, QtCore
 from shiboken2 import wrapInstance
-import numpy as np
+import math
 
 
 def maya_main_window():
@@ -15,6 +15,7 @@ def maya_main_window():
 
 class ScatterUI(QtWidgets.QDialog):
     """Scatter UI Class"""
+
     # broadly repurposed from the smartsave project
 
     def __init__(self):
@@ -150,11 +151,9 @@ class ScatterUI(QtWidgets.QDialog):
         """Connect widget signal to slot"""
         self.button.clicked.connect(self.launch_scatter)
 
-
     @QtCore.Slot()
     def launch_scatter(self):
         """launches scatter"""
-        print("hello")
         sc = Scatter(rotate_x_min=self.min_x_sbx.value(), rotate_x_max=self.max_x_sbx.value(),
                      rotate_y_min=self.min_y_sbx.value(), rotate_y_max=self.max_y_sbx.value(),
                      rotate_z_min=self.min_z_sbx.value(), rotate_z_max=self.max_z_sbx.value(),
@@ -188,7 +187,6 @@ class Scatter:
         selection = cmds.ls(sl=True, fl=True)
         pattern = "{obj}.f[*]".format(obj=selection[1])
         face_names = cmds.ls(pattern, flatten=True)
-        print(face_names)
         object_to_instance = selection[0]
 
         if cmds.objectType(object_to_instance) == "transform":
@@ -199,18 +197,17 @@ class Scatter:
     def instance_objects(self, object_to_instance, target_names, vertex=False, face=False):
         """instances an object to each target, scaling and rotating it appropriately"""
         for target in target_names:
-            if random.randint(1, 100) < self.density:
-                new_instance = cmds.instance(object_to_instance)
-                new_instance = self.scale_instance(new_instance, self.scale_min, self.scale_max)
-                new_instance = self.rotate_instance(new_instance, self.rotate_x_min, self.rotate_x_max,
-                                                    self.rotate_y_min, self.rotate_y_max, self.rotate_z_min,
-                                                    self.rotate_z_max)
-                # position = cmds.pointPosition(vertex, w=True)
-                # cmds.move(position[0], position[1], position[2], new_instance, a=True, ws=True)
-                face_center = self.get_face_center(target)
-                face_normal = self.get_face_normal(target)
-                self.move_align(target, face_normal, face_center)
-
+            print("uwu")
+            new_instance = cmds.instance(object_to_instance)
+            new_instance = self.scale_instance(new_instance, self.scale_min, self.scale_max)
+            new_instance = self.rotate_instance(new_instance, self.rotate_x_min, self.rotate_x_max,
+                                                self.rotate_y_min, self.rotate_y_max, self.rotate_z_min,
+                                                self.rotate_z_max)
+            # position = cmds.pointPosition(vertex, w=True)
+            # cmds.move(position[0], position[1], position[2], new_instance, a=True, ws=True)
+            face_center = self.get_face_center(target)
+            face_normal = self.get_face_normal(target)
+            self.move_align(target, face_normal, face_center)
 
     def scale_instance(self, inst, min_scale, max_scale):
         """returns a randomly scaled instance according to user preference"""
@@ -225,7 +222,7 @@ class Scatter:
 
     def rotate_instance(self, inst, x_min, x_max, y_min, y_max, z_min, z_max):
         """Randomly rotates the instance and returns it"""
-        #instead of erroring out, if the user specifies a min > max, just swap them, it should work as expected
+        # instead of erroring out, if the user specifies a min > max, just swap them, it should work as expected
         if x_min > x_max:
             swap_arr = swap(x_min, x_max)
             x_min, x_max = [swap_arr[i] for i in swap_arr]
@@ -249,89 +246,119 @@ class Scatter:
         # vector $vertexPositions[] = `xform - q - ws - t $pFaceName`;
         cmds.select(face_name)
         ver_positions = cmds.xform(q=True, ws=True, t=True)  # vector $sum = << 0, 0, 0 >>;
-        ver_sum = np.array([[0], [0], [0]])
+        # all vector-like arrays start with v
+        v_sum = [0, 0, 0]
         #  vector $v;
         #   for ($v in $vertexPositions){
         for v in ver_positions:
             #       $sum = $sum + $v;
-            ver_sum = ver_sum + v
+            for i in range (0, 3):
+                v_sum[i] += v
+                v += 1
         # }
         # vector $average;
-        average = np.array()
+        v_avg = [0, 0, 0]
         #  int $numVertices = size($vertexPositions);
-        num_ver = ver_positions.size
+        num_ver = len(ver_positions)
         #  $average = $sum / $numVertices;
-        average = ver_sum / num_ver
+        v_avg[0] = v_sum[0] / num_ver
+        v_avg[1] = v_sum[1] / num_ver
+        v_avg[2] = v_sum[2] / num_ver
         #   return $average;
-        return average
+        return v_avg
 
     #    proc vector getFaceNormal(string $pFaceName) {
     def get_face_normal(self, face_name):
-        """returns the normal vector of the face"""
-        #   string $polyInfoResult[] = `polyInfo - fn $pFaceName`;
-        poly_info_result = cmds.polyInfo(fn=face_name)
-        #   string $stringToParse = $polyInfoResult[0];
+        """returns the unit normal vector of the face"""
+        #get the face's normal vector in LOCAL coordinates
+        cmds.select(face_name)
+        poly_info_result = cmds.polyInfo(fn=True)
+        # convert results to floats
         items = poly_info_result[0].split(" ")
-        #  string $items[]; #   float $x = ($items[2]);
-        x = float(items[2])
-        #  float $y = ($items[3]);
-        y = float(items[3])
-        #    float $z = ($items[4]);
-        z = float(items[4])
-        #   vector $normal = << $x, $y, $z >>;
-        normal = np.array([[x], [y], [z]])
-        #    string $parentShape[] = `listRelatives - parent $pFaceName`;
+        x = float(items[7])
+        y = float(items[8])
+        z = float(items[9])
+        v_normal = [x, y, z]
+        #rest of function converts the local coordinate to world coordinates
+        #get the transform matrix
         parent_shape = cmds.listRelatives(face_name, parent=True)
-        #    string $parentTransform[] = `listRelatives - parent $parentShape[0]`;
         parent_trans = cmds.listRelatives(parent_shape[0], parent=True)
-        #    float $transformMatrix[] = `xform - q - m - ws $parentTransform[0]`;
-        transform_matrix = xform(q=True, m=True, ws=parent_trans[0])
+        #multiply transform by the local-space vector to get the world space vector
+        cmds.select(parent_trans)
+        transform_matrix = cmds.xform(q=True, m=True, ws=True)
         #    vector $worldNormal = `pointMatrixMult $normal $transformMatrix`;
-        world_normal = np.array(cmds.pointMatrixMult(normal, transform_matrix))
-        #    vector $unitWorldNormal = unit($worldNormal);
+        v_world_normal = self.point_matrix_mult(v_normal, transform_matrix)
         # make it a unit vector
-        world_normal = world_normal / np.linalg.norm(world_normal)
+        v_world_unit = self.unitize_vector(v_world_normal)
         #    return $unitWorldNormal;
-        return world_normal
+        return v_world_unit
 
-
-    #proc moveAlign(string $pObjectName, vector $pNormal, vector $pPosition){
-    def move_align(self, obj_name, normal, position):
+    # proc moveAlign(string $pObjectName, vector $pNormal, vector $pPosition){
+    def move_align(self, obj_name, v_normal, position):
         """positions object based on a given normal and position"""
-        # vector $tangent1 = unit(cross($pNormal, << 0, 1, 0 >>));
         # compute the first tangent
-        tangent1 = np.cross(normal, np.array[[0], [1], [0]])
+        v_tangent_1 = self.cross_mult_vector(v_normal, [0, 1, 0])
         # make it into a unit
-        tangent1 = tangent1 / np.linalg.norm(tangent1)
-        # if (mag($tangent1) == 0){
-        if tangent1 == np.array([[0], [0], [0]]):
-            tangent1 = np.array([[1], [0], [0]])
-            # $tangent = << 1, 0, 0 >>;
-        # }
-        # vector $tangent2 = unit(cross($pNormal, $tangent1));
-        tangent2 = np.cross(normal, tangent1)
+        v_tangent_1 = self.unitize_vector(v_tangent_1)
+        if v_tangent_1 == [0, 0, 0]:
+            v_tangent_1 = [1, 0, 0]
+        #compute the second tangent
+        v_tangent_2 = self.cross_mult_vector(v_normal, v_tangent_1)
         # make it a unit
-        tangent2 = tangent2 / np.linalg.norm(tangent2)
+        v_tangent_2 = self.unitize_vector(v_tangent_2)
         # matrix $m[4][4] = <<
         # ($tangent2.x), ($tangent2.y), ($tangent2.z), 0.0;
         # ($pNormal.x), ($pNormal.y), ($pNormal.z), 0.0;
         # ($tangent1.x), ($tangent1.y), ($tangent1.z), 0.0;
         # ($pPosition.x), ($pPosition.y), ($pPosition.z), 1.0 >>;
-        matrix = np.array([
-            tangent2[0], tangent2[1], tangent2[2], 0.0,
-            normal[0], normal[1], normal[2], 0.0,
-            tangent1[0], tangent1[1], tangent1[2], 0.0,
+        matrix = [
+            v_tangent_2[0], v_tangent_2[1], v_tangent_2[2], 0.0,
+            v_normal[0], v_normal[1], v_normal[2], 0.0,
+            v_tangent_1[0], v_tangent_1[1], v_tangent_1[2], 0.0,
             position[0], position[1], position[2], 0.0
-        ])
+        ]
         # xform - ws - m
-# ($m[0][0])($m[0][1]) ($m[0][2])($m[0][3])
-# ($m[1][0])($m[1][1]) ($m[1][2])($m[1][3])
-# ($m[2][0])($m[2][1]) ($m[2][2])($m[2][3])
-# ($m[3][0])($m[3][1]) ($m[3][2])($m[3][3])
+        # ($m[0][0])($m[0][1]) ($m[0][2])($m[0][3])
+        # ($m[1][0])($m[1][1]) ($m[1][2])($m[1][3])
+        # ($m[2][0])($m[2][1]) ($m[2][2])($m[2][3])
+        # ($m[3][0])($m[3][1]) ($m[3][2])($m[3][3])
         cmds.select(obj_name)
         cmds.xform(ws=True, m=matrix)
-# $pObjectName;#}#string $selection[] = `ls - os - fl`;
-# string $faceNames[] = `filterExpand - selectionMask34 - expand true $selection`;
-# string $objectToInstance = $selection[0];
-# if (`objectType $objectToInstance` == "transform")
-# {
+
+    # $pObjectName;#}#string $selection[] = `ls - os - fl`;
+    # string $faceNames[] = `filterExpand - selectionMask34 - expand true $selection`;
+    # string $objectToInstance = $selection[0];
+    # if (`objectType $objectToInstance` == "transform")
+    # {
+
+    def point_matrix_mult(self, v_point, matrix):
+        # i'm 80% sure this is what mel's pointMatrixMult() is doing
+        product = [0, 0, 0]
+        product[0] = v_point[0] * matrix[0] + v_point[1] * matrix[1] + v_point[2] * matrix[2]
+        product[1] = v_point[0] * matrix[4] + v_point[1] * matrix[5] + v_point[2] * matrix[6]
+        product[2] = v_point[0] * matrix[8] + v_point[1] * matrix[9] + v_point[2] * matrix[10]
+        return product
+
+    def unitize_vector(self, vector):
+        print(vector)
+        print("unitized!")
+        mag = self.mag_vector(vector)
+        length = len(vector)
+        for c in range (0,length):
+            vector[c] = vector[c] / mag
+        print(vector)
+        return vector
+
+    def cross_mult_vector(self, vector_1, vector_2):
+        cross = [0, 0, 0]
+        cross[0] = vector_1[1] * vector_2[2] - vector_1[2] * vector_2[1]
+        cross[1] = vector_1[2] * vector_2[0] - vector_1[0] * vector_2[2]
+        cross[2] = vector_1[0] * vector_2[1] - vector_1[1] * vector_2[0]
+        return cross
+
+    def mag_vector(self, vector):
+        total = 0
+        for c in vector:
+            total += c * c
+        magnitude = math.sqrt(total)
+        return magnitude

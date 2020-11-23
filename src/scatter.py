@@ -240,3 +240,85 @@ class Scatter:
         cmds.rotate(y, inst, rotateY=True, relative=True)
         cmds.rotate(z, inst, rotateZ=True, relative=True)
         return inst
+
+    # proc vector getFaceCenter(string $pFaceName){
+    def get_face_center(self, face_name):
+        """returns numpy array of face center"""
+        # vector $vertexPositions[] = `xform - q - ws - t $pFaceName`;
+        ver_positions = cmds.xform(q=true, ws=true, t=face_name)  # vector $sum = << 0, 0, 0 >>;
+        sum = np.array([[0], [0], [0]])
+        #  vector $v;
+        #   for ($v in $vertexPositions){
+        for v in ver_positions:
+            #       $sum = $sum + $v;
+            sum = sum + v
+        # }
+        # vector $average;
+        average = np.array()
+        #  int $numVertices = size($vertexPositions);
+        num_ver = ver_positions.size
+        #  $average = $sum / $numVertices;
+        average = sum / num_ver
+        #   return $average;
+        return average
+
+    # }
+    #    proc vector getFaceNormal(string $pFaceName) {
+    def get_face_normal(self, face_name):
+        #   string $polyInfoResult[] = `polyInfo - fn $pFaceName`;
+        poly_info_result = cmds.polyInfo(fn=face_name)
+        #   string $stringToParse = $polyInfoResult[0];
+        items = poly_info_result[0].split(" ")
+        #  string $items[]; #   float $x = ($items[2]);
+        x = float(items[2])
+        #  float $y = ($items[3]);
+        y = float(items[3])
+        #    float $z = ($items[4]);
+        z = float(items[4])
+        #   vector $normal = << $x, $y, $z >>;
+        normal = np.array([[x], [y], [z]])
+        #    string $parentShape[] = `listRelatives - parent $pFaceName`;
+        parent_shape = cmds.listRelatives(face_name, parent=true)
+        #    string $parentTransform[] = `listRelatives - parent $parentShape[0]`;
+        parent_trans = cmds.listRelatives(parent_shape[0], parent=true)
+        #    float $transformMatrix[] = `xform - q - m - ws $parentTransform[0]`;
+        transform_matrix = xform(q=true, m=true, ws=parent_trans[0])
+        #    vector $worldNormal = `pointMatrixMult $normal $transformMatrix`;
+        world_normal = np.array(cmds.pointMatrixMult(normal, transform_matrix))
+        #    vector $unitWorldNormal = unit($worldNormal);
+        # make it a unit vector
+        world_normal = world_normal / np.linalg.norm(world_normal)
+        #    return $unitWorldNormal;
+        return world_normal  # }#proc moveAlign(string $pObjectName, vector $pNormal, vector $pPosition){
+
+    def move_align(self, obj_name, normal, position):
+        # vector $tangent1 = unit(cross($pNormal, << 0, 1, 0 >>));
+        # compute the first tangent
+        tangent1 = np.cross(normal, np.array[[0], [1], [0]])
+        # make it into a unit
+        tangent1 = tangent1 / np.linalg.norm(tangent1)
+        # if (mag($tangent1) == 0){
+        if tangent1 == np.array([[0], [0], [0]]):
+            tangent1 = np.array([[1], [0], [0]])
+            # $tangent = << 1, 0, 0 >>;
+        # }
+        # vector $tangent2 = unit(cross($pNormal, $tangent1));
+        tangent2 = np.cross(normal, tangent1)
+        # make it a unit
+        tangent2 = tangent2 / np.linalg.norm(tangent2)
+        # matrix $m[4][4] = <<
+        # ($tangent2.x), ($tangent2.y), ($tangent2.z), 0.0;
+        # ($pNormal.x), ($pNormal.y), ($pNormal.z), 0.0;
+        # ($tangent1.x), ($tangent1.y), ($tangent1.z), 0.0;
+        # ($pPosition.x), ($pPosition.y), ($pPosition.z), 1.0 >>;
+        matrix = np.array(
+            [tangent2[0], ]
+        )  # xform - ws - m
+# ($m[0][0])($m[0][1]) ($m[0][2])($m[0][3])
+# ($m[1][0])($m[1][1]) ($m[1][2])($m[1][3])
+# ($m[2][0])($m[2][1]) ($m[2][2])($m[2][3])
+# ($m[3][0])($m[3][1]) ($m[3][2])($m[3][3]) $pObjectName;#}#string $selection[] = `ls - os - fl`;
+# string $faceNames[] = `filterExpand - selectionMask34 - expand true $selection`;
+# string $objectToInstance = $selection[0];
+# if (`objectType $objectToInstance` == "transform")
+# {
